@@ -97,7 +97,7 @@ void setupMPU6050() {
   Wire.beginTransmission(MPU_addr);
   Wire.write(0x3B);
   Wire.endTransmission(false);
-  size_t bytesRead = Wire.requestFrom((uint8_t)MPU_addr, (size_t)6, (bool)true);
+  uint8_t bytesRead = Wire.requestFrom((uint8_t)MPU_addr, (uint8_t)6, (uint8_t)1);
   if (bytesRead < 6) {
     sensorData.mpuInitProgress = 70;
     sensorData.mpuValid = false;
@@ -110,7 +110,7 @@ void setupMPU6050() {
     Wire.beginTransmission(MPU_addr);
     Wire.write(0x3B);
     Wire.endTransmission(false);
-    Wire.requestFrom((uint8_t)MPU_addr, (size_t)6, (bool)true);
+    Wire.requestFrom((uint8_t)MPU_addr, (uint8_t)6, (uint8_t)1);
     if (Wire.available() >= 6) {
       Wire.read(); Wire.read(); Wire.read(); Wire.read(); Wire.read(); Wire.read();
     }
@@ -130,15 +130,15 @@ void readMPU6050() {
   Wire.beginTransmission(MPU_addr);
   Wire.write(0x3B);
   Wire.endTransmission(false);
- if (Wire.requestFrom((uint8_t)MPU_addr, (uint8_t)6, (uint8_t)true) != 6)
-{
+  if (Wire.requestFrom((uint8_t)MPU_addr, (uint8_t)6, (uint8_t)1) != 6)
+  {
     return;
-}
+  }
 
-if (Wire.available() < 6)
-{
+  if (Wire.available() < 6)
+  {
     return;
-}
+  }
 
   accel_x_raw = Wire.read() << 8 | Wire.read();
   accel_y_raw = Wire.read() << 8 | Wire.read();
@@ -151,19 +151,21 @@ if (Wire.available() < 6)
   accel_x_g = accel_x / 16384.0f;
   accel_y_g = accel_y / 16384.0f;
   accel_z_g = accel_z / 16384.0f;
-static float fx = 0;
-static float fy = 0;
-static float fz = 0;
 
-const float alpha = 0.2f;
+  static float fx = 0;
+  static float fy = 0;
+  static float fz = 0;
 
-fx = alpha * accel_x_g + (1.0f - alpha) * fx;
-fy = alpha * accel_y_g + (1.0f - alpha) * fy;
-fz = alpha * accel_z_g + (1.0f - alpha) * fz;
+  const float alpha = 0.2f;
 
-accel_x_g = fx;
-accel_y_g = fy;
-accel_z_g = fz;
+  fx = alpha * accel_x_g + (1.0f - alpha) * fx;
+  fy = alpha * accel_y_g + (1.0f - alpha) * fy;
+  fz = alpha * accel_z_g + (1.0f - alpha) * fz;
+
+  accel_x_g = fx;
+  accel_y_g = fy;
+  accel_z_g = fz;
+
   sensorData.posX = accel_x_g;
   sensorData.posY = accel_y_g;
   sensorData.posZ = accel_z_g;

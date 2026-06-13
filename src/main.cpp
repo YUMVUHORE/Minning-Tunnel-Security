@@ -1,13 +1,23 @@
-#include <HardwareSerial.h>
+#if defined(ESP32)
 #include <Adafruit_MPU6050.h>
 #include <Adafruit_Sensor.h>
+#endif
 #include <Wire.h>
 #include "mpuHandler/mpuHandler.h"
 #include "global.h"
-String orientation = "Unknown";
+
+#if defined(ESP32)
+#include <HardwareSerial.h>
 HardwareSerial RS485Serial(2);
+#else
+#include <SoftwareSerial.h>
+// Nano: use pins D2 (RX) and D3 (TX) for RS485, leaving hardware
+// Serial free for USB debug output.
+SoftwareSerial RS485Serial(2, 3);
+#endif
 
 SensorData sensorData;
+String orientation = "Unknown";
 
 // ---------------- NODE CONFIGURATION ----------------
 // Set this board's role and address here (or replace with
@@ -15,8 +25,8 @@ SensorData sensorData;
 //
 // isMaster = true  -> this board is address 0x00 and polls all slaves
 // isMaster = false -> this board is a slave, set MY_ADDR to its id (1-9)
-bool isMaster = true;
-const int MY_ADDR = 0;
+bool isMaster = false;
+const int MY_ADDR = 1;
 // ------------------------------------------------------
 
 const int MAX_NODES = 10;
@@ -205,21 +215,53 @@ void slaveLoop()
     }
 }
 
-// -------------------- Setup / Loop --------------------
+void i2cScan()
+{
+    Serial.println("Scanning I2C bus...");
+    int found = 0;
+
+    for (uint8_t addr = 1; addr < 127; addr++)
+    {
+        Wire.beginTransmission(addr);
+        uint8_t error = Wire.endTransmission();
+
+        if (error == 0)
+        {
+            Serial.print("Device found at 0x");
+            if (addr < 16) Serial.print("0");
+            Serial.println(addr, HEX);
+            found++;
+        }
+    }
+
+    if (found == 0)
+        Serial.println("No I2C devices found.");
+    else
+        Serial.println("Scan complete.");
+}
+
+
 
 void setup()
 {
     Serial.begin(115200);
 
+#if defined(ESP32)
     RS485Serial.begin(
         9600,
         SERIAL_8N1,
         16, // RX
         17  // TX
     );
+#else
+    RS485Serial.begin(9600);
+#endif
 
     Wire.begin();
     Wire.setClock(100000);
+
+    i2cScan();
+
     setupMPU6050();
 
     delay(1000);
